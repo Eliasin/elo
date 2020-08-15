@@ -6,13 +6,15 @@ Elo implementation written in Rust with bracket configurable K values and differ
 This project uses Rust nightly, Rust can be installed with [rustup](https://rustup.rs/).
 
 ```
+> git clone git@github.com:Eliasin/elo.git
+> cd elo
 > cargo build --release
 ```
 
 ## Usage
 ```
 USAGE:
-    elo [OPTIONS] --matches <FILE> --output <FILE> --standings <FILE
+    elo [OPTIONS] --matches <FILE> --output <FILE> --standings <FILE>
 ```
 
 `matches` should be the path to a file containing a JSON representing a list of
