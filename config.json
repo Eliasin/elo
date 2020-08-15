@@ -1,0 +1,19 @@
+{
+	"bo1_score": 1,
+	"bo3_score": 1.25,
+	"bo5_score": 1.5,
+	"k_brackets": [
+		{
+			"start": 0,
+			"k": 32
+		},
+		{
+			"start": 400,
+			"k": 28
+		},
+		{
+			"start": 700,
+			"k": 24
+		}
+	]
+}
