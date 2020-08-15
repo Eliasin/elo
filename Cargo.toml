@@ -1,5 +1,5 @@
 [package]
-name = "lol_elo"
+name = "elo"
 version = "0.1.0"
 authors = ["Steven Pham <steven.pham.8.2000@gmail.com>"]
 edition = "2018"
