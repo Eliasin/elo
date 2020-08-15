@@ -6,7 +6,7 @@ Elo implementation written in Rust with bracket configurable K values and differ
 This project uses Rust nightly, Rust can be installed with [rustup](https://rustup.rs/).
 
 ```
-> git clone git@github.com:Eliasin/elo.git
+> git clone https://github.com/Eliasin/elo.git
 > cd elo
 > cargo build --release
 ```
