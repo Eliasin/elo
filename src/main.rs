@@ -5,7 +5,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::{BufReader, Write};
 use std::path::Path;
-use clap::{Arg, App};
+use clap::{Arg, App, SubCommand};
 
 type Standings = HashMap<String, f32>;
 
@@ -120,6 +120,13 @@ fn apply_match_results(results: &Vec<MatchResult>, standings: &Standings, k_brac
         })
 }
 
+fn get_probabilities_from_standings(standings: &Standings, team_a: &str, team_b: &str) -> Option<(f32, f32)> {
+    let rating_a = standings.get(team_a)?;
+    let rating_b = standings.get(team_b)?;
+
+    return Some(get_expected_probabilities(*rating_a, *rating_b));
+}
+
 fn parse_type_from_path<'a, T>(path: &Path) -> Result<T, Box<dyn Error>> 
 where
     for<'de> T: serde::Deserialize<'de> + 'a
@@ -160,58 +167,100 @@ fn main() {
                           .version("1.0")
                           .author("Steven Pham")
                           .about("Calculates evolution of team elo after match sets")
-                          .arg(Arg::with_name("config")
-                              .short("c")
-                              .long("config")
-                              .value_name("FILE")
-                              .help("Path to config file, default is `config.toml`")
-                              .takes_value(true))
-                          .arg(Arg::with_name("standings")
-                              .short("s")
-                              .long("standings")
-                              .value_name("FILE")
-                              .help("Path to standings file")
-                              .takes_value(true)
-                              .required(true))
-                          .arg(Arg::with_name("matches")
-                              .short("m")
-                              .long("matches")
-                              .value_name("FILE")
-                              .help("Path to matches file")
-                              .takes_value(true)
-                              .required(true))
-                          .arg(Arg::with_name("output")
-                              .short("o")
-                              .long("output")
-                              .value_name("FILE")
-                              .help("Path to output standings")
-                              .takes_value(true)
-                              .required(true)).get_matches();
+                          .subcommand(SubCommand::with_name("update")
+                              .about("Generates new standings from standings and matches")
+                              .arg(Arg::with_name("config")
+                                  .short("c")
+                                  .long("config")
+                                  .value_name("FILE")
+                                  .help("Path to config file, default is `config.toml`")
+                                  .takes_value(true))
+                              .arg(Arg::with_name("standings")
+                                  .short("s")
+                                  .long("standings")
+                                  .value_name("FILE")
+                                  .help("Path to standings file")
+                                  .takes_value(true)
+                                  .required(true))
+                              .arg(Arg::with_name("matches")
+                                  .short("m")
+                                  .long("matches")
+                                  .value_name("FILE")
+                                  .help("Path to matches file")
+                                  .takes_value(true)
+                                  .required(true))
+                              .arg(Arg::with_name("output")
+                                  .short("o")
+                                  .long("output")
+                                  .value_name("FILE")
+                                  .help("Path to output standings")
+                                  .takes_value(true)
+                                  .required(true)))
+                          .subcommand(SubCommand::with_name("show")
+                              .about("Shows probabilities based on standings")
+                              .arg(Arg::with_name("teamA")
+                                  .help("Name of first team")
+                                  .takes_value(true)
+                                  .required(true))
+                              .arg(Arg::with_name("teamB")
+                                  .help("Name of second team")
+                                  .takes_value(true)
+                                  .required(true))
+                              .arg(Arg::with_name("standings")
+                                  .short("s")
+                                  .long("standings")
+                                  .value_name("FILE")
+                                  .help("Path to standings file")
+                                  .takes_value(true)
+                                  .required(true))).get_matches();
+                            
 
-    let standings_path = matches.value_of("standings").unwrap();
-    let matches_path = matches.value_of("matches").unwrap();
-    let output_path = matches.value_of("output").unwrap();
-    let config_path = matches.value_of("config").unwrap_or("config.json");
+    match matches.subcommand() {
+        ("update", Some(sub_m)) => {
+            let standings_path = sub_m.value_of("standings").unwrap();
+            let matches_path = sub_m.value_of("matches").unwrap();
+            let output_path = sub_m.value_of("output").unwrap();
+            let config_path = sub_m.value_of("config").unwrap_or("config.json");
 
-    let standings = match parse_standings_from_path(Path::new(standings_path)) {
-        Ok(v) => v,
-        Err(error) => panic!("Problem reading standings: {:?}", error),
-    };
+            let standings = match parse_standings_from_path(Path::new(standings_path)) {
+                Ok(v) => v,
+                Err(error) => panic!("Problem reading standings: {:?}", error),
+            };
 
-    let matches = match parse_match_results_from_path(Path::new(matches_path)) {
-        Ok(v) => v,
-        Err(error) => panic!("Problem reading match results: {:?}", error),
-    };
+            let matches = match parse_match_results_from_path(Path::new(matches_path)) {
+                Ok(v) => v,
+                Err(error) => panic!("Problem reading match results: {:?}", error),
+            };
 
-    let config = match parse_type_from_path::<Configuration>(Path::new(config_path)) {
-        Ok(v) => v,
-        Err(error) => panic!("Problem reading config results: {:?}", error),
-    };
+            let config = match parse_type_from_path::<Configuration>(Path::new(config_path)) {
+                Ok(v) => v,
+                Err(error) => panic!("Problem reading config results: {:?}", error),
+            };
 
-    let series_win_weight = get_series_win_weight_from_config(config.clone());
+            let series_win_weight = get_series_win_weight_from_config(config.clone());
 
-    match write_standings_to_path(Path::new(output_path), &apply_match_results(&matches, &standings, &config.k_brackets, &series_win_weight).unwrap()) {
-        Ok(v) => v,
-        Err(error) => panic!("Problem writing standings: {:?}", error)
+            match write_standings_to_path(Path::new(output_path), &apply_match_results(&matches, &standings, &config.k_brackets, &series_win_weight).unwrap()) {
+                Ok(v) => v,
+                Err(error) => panic!("Problem writing standings: {:?}", error)
+            };
+        },
+        ("show", Some(sub_m)) => {
+            let standings_path = sub_m.value_of("standings").unwrap();
+
+            let team_a = sub_m.value_of("teamA").unwrap();
+            let team_b = sub_m.value_of("teamB").unwrap();
+
+            let standings = match parse_standings_from_path(Path::new(standings_path)) {
+                Ok(v) => v,
+                Err(error) => panic!("Problem reading standings: {:?}", error),
+            };
+
+            match get_probabilities_from_standings(&standings, team_a, team_b) {
+                Some(v) => println!("{:?}", v),
+                None => println!("Unrecognized team name")
+            };
+
+        },
+        (&_, _) => {},
     };
 }
